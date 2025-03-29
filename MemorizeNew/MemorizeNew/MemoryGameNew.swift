@@ -20,18 +20,25 @@ struct MemoryGameNew<CardContent> where CardContent: Equatable {
         }
     }
     
-    mutating func choose(_ card: Card) {
-        let chosenIndex = index(of: card)
-        cards[chosenIndex].isFaceUp.toggle()
+    var indexOfTheOnlyCardFaceDown: Int? {
+        get { return cards.indices.filter { index in cards[index].isFaceUp }.only }
+        set { return cards.indices.forEach { cards[$0].isFaceUp = (newValue == $0) } }
     }
     
-    func index(of card: Card) -> Int {
-        for index in cards.indices {
-            if cards[index] == card {
-                return index
+    mutating func choose(_ card: Card) {
+        if let chosenIndex = cards.firstIndex(where: { $0.id == card.id}) {
+            if !cards[chosenIndex].isFaceUp && !cards[chosenIndex].isMatchedl {
+                if let potentialMatchedIndex = indexOfTheOnlyCardFaceDown {
+                    if cards[chosenIndex].content == cards[potentialMatchedIndex].content {
+                        cards[chosenIndex].isMatchedl = true
+                        cards[potentialMatchedIndex].isMatchedl = true
+                    }
+                } else {
+                    indexOfTheOnlyCardFaceDown = chosenIndex
+                }
+                cards[chosenIndex].isFaceUp = true
             }
         }
-        return 0 // FIXME: bogus!
     }
     
     mutating func shuffle() {
@@ -40,7 +47,7 @@ struct MemoryGameNew<CardContent> where CardContent: Equatable {
     
     struct Card: Equatable, Identifiable, CustomDebugStringConvertible {
         
-        var isFaceUp = true
+        var isFaceUp = false
         var isMatchedl = false
         var content: CardContent
         
@@ -48,5 +55,11 @@ struct MemoryGameNew<CardContent> where CardContent: Equatable {
         var debugDescription: String {
             return "\(id):  \(content) \(isFaceUp ? "up" : "down") \(isMatchedl ? "matched" : "")"
         }
+    }
+}
+
+extension Array {
+    var only: Element? {
+        count == 1 ? first : nil
     }
 }
